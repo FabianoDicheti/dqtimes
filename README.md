@@ -75,6 +75,66 @@ Contratar uma empresa especializada para **realizar a transição de um software
 
 # Grupo 2
 
+
+Uso do React no Docker Compose para o Frontend
+Por que usar React?
+A escolha do React foi baseada em sua flexibilidade, desempenho e ampla adoção no mercado.
+Além disso, ele se adapta bem a arquiteturas modernas baseadas em microserviços e APIs REST, como o backend deste projeto (FastAPI + Rust).
+
+Vantagens principais
+Integração com APIs
+Consome facilmente serviços REST ou GraphQL.
+Suporte a bibliotecas como Axios, React Query e SWR.
+Ecossistema maduro
+Grande variedade de bibliotecas e frameworks de UI (Tailwind, Material UI, Chakra).
+Suporte consolidado da comunidade e atualizações frequentes.
+Flexibilidade arquitetural
+Não impõe uma estrutura rígida, permitindo que a equipe defina o padrão de organização mais adequado.
+
+Componentização
+Código mais organizado e fácil de manter..
+Reuso de componentes em diferentes telas.
+Curva de aprendizado acessível
+Baseado em JavaScript e JSX, o que facilita para quem já conhece JS/TS.
+Documentação rica e comunidade ativa.
+Por que usar Docker no frontend?
+Padronização
+Garante que a aplicação rode de forma idêntica em qualquer ambiente.
+
+Facilidade de deploy
+O frontend pode ser integrado ao backend no mesmo fluxo de containers.
+
+Isolamento de dependências
+Evita conflitos com outras aplicações instaladas na máquina.
+
+Escalabilidade
+Containers podem ser replicados para atender a mais usuários.
+
+React dentro do Docker Compose
+O React será utilizado para construir a interface web do sistema, permitindo que os usuários interajam de forma intuitiva com os microserviços.
+No docker-compose, o React terá um contêiner dedicado, o que traz benefícios como:
+
+Isolamento e portabilidade
+A aplicação front-end roda em seu próprio ambiente, sem dependências externas do host.
+
+Integração facilitada
+Comunicação direta com o backend em FastAPI e Rust via rede interna do Docker.
+
+Escalabilidade
+O contêiner pode ser replicado conforme a demanda de acessos cresce.
+
+Padronização do ambiente
+Garante que todos no time usem a mesma versão de Node/React, evitando problemas de compatibilidade.
+
+Resumo da escolha
+O React se mostrou a melhor opção porque:
+
+Integra facilmente com microserviços em FastAPI.
+Oferece flexibilidade sem engessar a equipe.
+Apresenta boa performance e tem uma das maiores comunidades do mercado.
+É mais simples de aprender e manter do que alternativas como Angular.
+Vamos usar React no front porque ele facilita criar uma interface interativa, dinâmica e desacoplada do back-end. Como o microserviço em FastAPI vai expor APIs, o React permite consumir essas APIs de forma eficiente, mantendo o front separado do back, o que garante escalabilidade, manutenção mais simples e melhor experiência do usuário.
+
 # Grupo 3
 # Docker
 
