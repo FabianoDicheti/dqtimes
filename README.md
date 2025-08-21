@@ -715,6 +715,157 @@ meu_projeto/
 
 # Grupo 5
 
+# PL/Python + Alembic (PostgreSQL + SQLAlchemy)
+
+Este guia explica como utilizar **PL/Python** no PostgreSQL e **Alembic** com SQLAlchemy para versionamento e gerenciamento do banco de dados.  
+
+---
+
+## O que é o PL/Python?
+O **PL/Python** é uma linguagem procedural que permite escrever funções armazenadas dentro do PostgreSQL usando Python.  
+Essas funções podem ser chamadas diretamente em consultas SQL, como se fossem nativas do banco.
+
+### Principais usos:
+- Processar e transformar dados direto no banco.  
+- Implementar regras de negócio mais complexas sem sair do SQL.  
+- Reutilizar bibliotecas Python dentro do PostgreSQL.  
+- Melhorar performance em cenários que exigem muito processamento.  
+
+---
+
+## O que é o Alembic?
+O **Alembic** é a ferramenta oficial de migração de banco de dados integrada ao SQLAlchemy.  
+Ele permite controlar o histórico de alterações do schema, garantindo rastreabilidade e consistência entre ambientes.  
+
+### Principais vantagens:
+- Versionamento do banco de dados via Git.  
+- Autogeração de scripts de migração a partir dos modelos SQLAlchemy.  
+- Segurança em produção (migrar e reverter com controle).  
+- Integração fácil com pipelines de **CI/CD**.  
+
+---
+
+## Por que usar os dois juntos?
+Separadamente, cada um resolve um problema:  
+
+- **PL/Python** → lógica e processamento avançado dentro do PostgreSQL.  
+- **Alembic** → versionamento e rastreabilidade do schema.  
+
+Quando combinados, é possível **versionar também as funções PL/Python**, garantindo que todos os ambientes tenham o mesmo estado do banco + funções customizadas.  
+
+---
+
+## Instalando e Configurando
+
+### Pré-requisitos
+- PostgreSQL instalado e rodando.  
+- Python **3.10+** com `pip` disponível.  
+- (Opcional) **Rust toolchain** para módulos de alto desempenho.  
+
+### Ativando o PL/Python no banco
+No PostgreSQL, execute (apenas 1 vez por banco):  
+
+```sql
+CREATE EXTENSION plpythonu;
+```
+
+### Instalando Alembic
+
+No ambiente Python do seu projeto (ex.: FastAPI):
+
+```bash
+pip install alembic psycopg2
+```
+
+Inicializar a estrutura de migração:
+
+```bash
+alembic init migrations
+```
+
+Configurar o banco no arquivo **alembic.ini**:
+
+```ini
+sqlalchemy.url = postgresql+psycopg2://usuario:senha@localhost:5432/nome_do_banco
+```
+
+---
+
+## Criando sua primeira função PL/Python
+
+Exemplo de função para **normalizar nomes**:
+
+```sql
+CREATE FUNCTION normalizar_nome(text) RETURNS text AS $$
+    import unicodedata
+    return unicodedata.normalize('NFKD', args[0]).encode('ascii', 'ignore')
+$$ LANGUAGE plpythonu;
+```
+
+Testando no banco:
+
+```sql
+SELECT normalizar_nome('José da Silva');
+-- Resultado: "Jose da Silva"
+```
+
+---
+
+## Versionando a função com Alembic
+
+1. Crie um arquivo SQL em `scripts/normalizar_nome.sql`:
+
+```sql
+CREATE FUNCTION normalizar_nome(text) RETURNS text AS $$
+    import unicodedata
+    return unicodedata.normalize('NFKD', args[0]).encode('ascii', 'ignore')
+$$ LANGUAGE plpythonu;
+```
+
+2. Crie uma nova migração:
+
+```bash
+alembic revision -m "adiciona função normalizar_nome"
+```
+
+3. Edite a migração gerada em `migrations/versions/<hash>_adiciona_funcao.py`:
+
+```python
+from alembic import op
+
+def upgrade():
+    op.execute(open("scripts/normalizar_nome.sql").read())
+
+def downgrade():
+    op.execute("DROP FUNCTION IF EXISTS normalizar_nome(text);")
+```
+
+4. Aplique a migração:
+
+```bash
+alembic upgrade head
+```
+
+Agora sua função está **versionada junto com o banco**.
+
+---
+
+## Fluxo resumido
+
+1. Instalar e configurar **PL/Python** no PostgreSQL.  
+2. Criar funções em arquivos `.sql` (ex.: `scripts/normalizar_nome.sql`).  
+3. Usar **Alembic** para versionar e aplicar as funções.  
+4. Garantir consistência entre todos os ambientes (**dev, staging, prod**).  
+
+---
+
+Com isso, você terá:
+
+* Funções avançadas em **Python direto no PostgreSQL**.  
+* Controle de versão e migração de **schema + funções** com Alembic.  
+* Um fluxo confiável e auditável para evolução do banco de dados.
+
+
 # Grupo 6
 
 
