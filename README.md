@@ -78,6 +78,203 @@ Contratar uma empresa especializada para **realizar a transição de um software
 # Grupo 3
 
 # Grupo 4
+# Celery, Flower e Redis: Guia Completo
+
+## O que é o Celery?
+O **Celery** é um task queue (fila de tarefas) que permite rodar tarefas assíncronas e agendadas. Ele funciona em conjunto com um broker de mensagens (como RabbitMQ ou Redis) que distribui as tarefas para os workers (processos que executam o trabalho).
+
+### Principais vantagens:
+- Simplicidade e integração com Python/Django/FastAPI/Flask.
+- Permite rodar tarefas em paralelo, escalando horizontalmente.
+- Suporta agendamento de tarefas (como cron jobs).
+- Muito usado e consolidado na comunidade (grande confiabilidade).
+
+## O que é o Flower?
+O **Flower** é uma ferramenta de monitoramento e gerenciamento em tempo real para o Celery.
+
+### Com ele é possível:
+- Visualizar o status dos workers (quantos estão ativos).
+- Acompanhar as tarefas em tempo real (sucesso, falha, tempo de execução).
+- Reexecutar ou revogar tarefas.
+- Ter métricas úteis de performance.
+
+Ou seja, o Flower dá visibilidade e controle, algo essencial para a gente evitar "tarefas fantasmas" e conseguir analisar gargalos.
+
+## Por que não usar apenas alternativas?
+Existem outras soluções no mercado (como RQ, Huey, Dramatiq), mas o Celery + Flower se destaca por:
+
+- **Maturidade**: é a solução mais usada em produção no ecossistema Python.
+- **Recursos completos**: suporta retries automáticos, task chaining (tarefas em sequência), groups (rodar várias em paralelo), crontab para agendamento.
+- **Monitoramento robusto**: Flower entrega um painel pronto e confiável, enquanto em outras soluções teríamos que construir algo manualmente.
+- **Escalabilidade**: usado em grandes empresas, comprovadamente suporta alto volume.
+
+## O que é o Redis?
+O **Redis** é um banco de dados em memória (ou seja, ele guarda tudo direto na RAM, não em disco).
+Por isso, ele é extremamente rápido.
+
+### Ele é muito usado como:
+- Cache (guardar coisas que você acessa toda hora, tipo resultado de consultas no banco).
+- Fila de mensagens (que é o que nos interessa com o Celery).
+- Armazenamento temporário de dados que expiram (ex.: tokens de login com prazo de validade).
+
+### Redis no Celery:
+O Celery precisa de um broker (intermediário).
+Esse broker é quem recebe a tarefa, guarda numa fila e entrega para um worker disponível executar.
+
+#### Fluxo resumido com Redis:
+1. Sua aplicação dispara uma tarefa → "manda um e-mail para fulano".
+2. O Redis recebe essa tarefa e guarda na fila.
+3. O worker Celery fica escutando o Redis.
+4. Assim que vê uma nova tarefa, ele pega e executa.
+5. Quando terminar, ele manda o resultado de volta para o Redis (que também serve como backend de resultados).
+
+## Instalando:
+Antes de mais nada, precisamos instalar o Celery e o Flower. Vamos usar o Redis como broker (o cara que vai segurar as tarefas até os workers executarem).
+
+### Instala o Celery com suporte a Redis
+```bash
+pip install celery[redis]
+```
+
+### Instala o Flower
+```bash
+pip install flower
+```
+
+### Instala o Redis (se não tiver)
+#### Linux (Ubuntu/Debian)
+```bash
+sudo apt install redis
+```
+
+#### Windows → usar WSL ou Docker
+```bash
+docker run -d -p 6379:6379 redis
+```
+
+Depois de rodar, garanta que o Redis está funcionando:
+
+```bash
+redis-cli ping
+```
+
+Deve retornar: `PONG`
+
+## Criando a configuração do Celery:
+Dentro do seu projeto (pode ser Flask, FastAPI, Django, ou até um script Python simples), crie um arquivo chamado `celery.py`.
+
+### Exemplo (celery.py):
+```python
+from celery import Celery
+
+# cria a instância do Celery
+app = Celery(
+    "meu_projeto",
+    broker="redis://localhost:6379/0",  # quem segura as tarefas
+    backend="redis://localhost:6379/0"  # onde salvar resultados
+)
+
+# algumas configs básicas
+app.conf.update(
+    task_serializer="json",  # formato das mensagens
+    result_serializer="json",  # formato dos resultados
+    accept_content=["json"],  # só aceita JSON
+    timezone="America/Sao_Paulo",
+    enable_utc=True,
+)
+```
+
+## Criando a primeira tarefa:
+Agora criamos um arquivo `tasks.py` onde ficam nossas tarefas.
+
+```python
+from .celery import app
+
+@app.task
+def soma(a, b):
+    print(f"Somando {a} + {b}")
+    return a + b
+
+@app.task
+def enviar_email(destinatario, mensagem):
+    print(f"Enviando email para {destinatario}...")
+    # simulação
+    return f"Email enviado para {destinatario} com sucesso!"
+```
+
+## Rodando os workers:
+Agora precisamos colocar os workers (os "trabalhadores") pra escutar a fila e executar as tarefas.
+
+No terminal:
+```bash
+celery -A celery worker -l info
+```
+
+- `-A celery` → nome do arquivo (celery.py) sem extensão.
+- `-l info` → nível de log.
+
+Se tudo estiver certo, você verá algo como:
+
+```
+[tasks]
+. tasks.soma
+. tasks.enviar_email
+```
+
+Isso significa que o worker já conhece nossas tarefas.
+
+## Executando Tarefas:
+No Python (pode ser via shell interativo ou no código do sistema):
+
+```python
+from tasks import soma, enviar_email
+
+# executa de forma assíncrona
+resultado = soma.delay(5, 7)
+print("Tarefa enviada!")
+
+# recupera o resultado depois
+print(resultado.get(timeout=10))  # deve imprimir 12
+
+# outra tarefa
+email = enviar_email.delay("teste@email.com", "Bem-vindo!")
+print(email.get(timeout=10))
+```
+
+**Importante**: `.delay()` sempre retorna imediatamente, sem travar o programa. Isso é o que deixa o sistema rápido.
+
+## Monitorando com Flower:
+O Flower dá uma visão completa de tudo isso.
+
+No terminal, rode:
+```bash
+celery -A celery flower
+```
+
+Por padrão ele abre em http://localhost:5555.
+
+### O que você vai ver lá:
+- Lista de workers ativos.
+- Cada tarefa que entrou, com status: recebida, executando, sucesso, erro.
+- Estatísticas de quantas tarefas rodaram.
+- Possibilidade de revogar tarefas (cancelar) ou até reexecutar.
+
+## Estrutura:
+```
+meu_projeto/
+│
+├── celery.py  # configuração do Celery
+├── tasks.py   # tarefas criadas
+├── app.py     # sua aplicação (Flask, FastAPI, Django, etc.)
+```
+
+## Fluxo resumido:
+1. Instala Celery + Redis + Flower.
+2. Configura o celery.py.
+3. Cria suas tarefas no tasks.py.
+4. Roda os workers (celery -A celery worker -l info).
+5. Do código, chama as tarefas com .delay().
+6. Monitora tudo com o Flower.
 
 # Grupo 5
 
