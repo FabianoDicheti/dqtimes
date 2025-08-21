@@ -717,4 +717,132 @@ meu_projeto/
 
 # Grupo 6
 
+
+
+#Guia de Desenvolvimento com FastAPI
+
+## 1. O que é o FastAPI
+O **FastAPI** é um framework moderno, rápido (de alta performance) para criação de APIs em Python.  
+Ele utiliza **tipagem estática** (type hints) para validação automática de dados e geração de documentação interativa (Swagger e ReDoc) sem esforço adicional.
+
+- **Criado por:** Sebastián Ramírez  
+- **Baseado em:** Starlette (para a parte web) e Pydantic (para validação de dados)
+
+## 2. Para que serve
+O FastAPI é ideal para:
+
+- Criar **APIs REST** de alta performance
+- Desenvolver **microserviços**
+- Projetos que precisam de **validação automática** de dados
+- Aplicações que exigem **documentação automática**
+- Sistemas que precisam escalar facilmente
+
+## 3. Por que usar o FastAPI e não o Django
+
+O FastAPI é rápido, leve e ideal para criar APIs modernas e microserviços, já vem com documentação automática e permite escolher como usar banco de dados.
+
+O Django é mais completo, traz ORM, painel admin e templates, sendo melhor para projetos maiores e sites completos.
+
+
+**Resumo:**  
+Use **FastAPI** se precisa de APIs rápidas, assíncronas e fáceis de documentar.  
+Use **Django** se precisa de um sistema web completo com painel administrativo pronto.
+
+## 4. Requisitos e Dependências Fortes
+
+**Python 3.8+**  
+**FastAPI** (framework principal)  
+**Uvicorn** (servidor ASGI recomendado para rodar o projeto)  
+
+**Instalação mínima:**
+bash
+pip install fastapi uvicorn
+
+**Fortemente atrelado ao FastAPI:**
+**Pydantic** → validação e serialização de dados (internamente já usado pelo FastAPI)  
+**Starlette** → manipulação HTTP, rotas e middlewares (também interno)  
+
+> Não é obrigatório usar ORM, mas se for preciso, geralmente recomenda-se **SQLAlchemy** ou **Tortoise ORM**.
+
+## 5. Arquitetura Recomendada
+
+**Estrutura básica de projeto**
+
+project/
+│
+ ── app/
+│   ├── main.py           # Ponto de entrada da aplicação
+│   ├── config.py         # Configurações do projeto
+│   ├── models/           # Modelos do banco de dados
+│   ├── schemas/          # Schemas Pydantic (validação)
+│   ├── routers/          # Rotas organizadas por módulo
+│   ├── services/         # Lógica de negócio
+│   ├── database.py       # Conexão com o banco
+│   └── utils/            # Funções auxiliares
+│
+├── requirements.txt      # Dependências
+└── README.md
+
+## 6. Passos para Desenvolvimento (Fluxo Sugerido)
+
+### **1. Preparar o ambiente**
+bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+pip install fastapi uvicorn
+
+### **2. Criar o arquivo principal (`main.py`)**
+python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "API rodando com FastAPI!"}
+
+
+Rodar o servidor:
+bash
+uvicorn app.main:app --reload
+
+### **3. Definir rotas**
+Criar `routers/` e adicionar rotas separadas por funcionalidade.
+Usar `@app.get`, `@app.post`, etc.
+
+### **4. Criar Schemas (Pydantic)**
+Definir a estrutura dos dados esperados e retornados.
+
+python
+from pydantic import BaseModel
+
+class UserSchema(BaseModel):
+    name: str
+    email: str
+
+### **5. Integrar com Banco de Dados**
+Escolher um ORM ou conexão direta (ex.: SQLAlchemy).
+Criar `models/` para as tabelas.
+
+### **6. Adicionar Lógica de Negócio (services/)**
+Centralizar funções que tratam regras do sistema.
+
+### **7. Configurações**
+Centralizar no `config.py` variáveis como URL do banco e chaves secretas.
+
+### **8. Testes**
+Usar `pytest` ou `unittest`.
+
+### **9. Deploy**
+Rodar com `uvicorn` ou `gunicorn` + `uvicorn.workers.UvicornWorker`
+Hospedar em **Heroku**, **Railway**, **Render**, **AWS**, **Azure** ou **GCP**.
+
+## 7. Links Úteis
+- [📚 Documentação oficial do FastAPI](https://fastapi.tiangolo.com/)
+- [🚀 Guia do Uvicorn](https://www.uvicorn.org/)
+- [🐍 Pydantic](https://docs.pydantic.dev/)
+
+
+
 # Grupo 7
