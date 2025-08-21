@@ -76,6 +76,383 @@ Contratar uma empresa especializada para **realizar a transição de um software
 # Grupo 2
 
 # Grupo 3
+# Docker
+
+## O que é o Docker 
+
+O Docker é uma plataforma de código aberto para desenvolvimento, envio e execução de aplicações em contêineres. Ele permite que desenvolvedores embalem aplicações e suas dependências em contêineres, garantindo que funcionem de forma consistente em diferentes ambientes. Basicamente, o Docker facilita a criação, implantação e gerenciamento de aplicações, promovendo a portabilidade e escalabilidade. 
+
+## Instalação
+
+Para a instalação do docker é importante antes a sua máquina ser de sistema operacional Linux, ou ser Windows com o WSL ([Segue um tutorial de como instalar o WSL em sua máquina](https://learn.microsoft.com/pt-br/windows/wsl/install)) para conseguir fazer ela.
+Para instalar o docker, seguem dois tutorias da documentação oficial sobre
+Ubuntu: https://docs.docker.com/engine/install/ubuntu/
+Windows: https://docs.docker.com/desktop/setup/install/windows-install/
+
+## Comandos Essenciais do Docker
+
+### Informações do sistema
+
+```bash
+docker --version           # Mostra a versão do Docker
+docker info                # Mostra informações detalhadas do sistema e containers
+```
+
+### Imagens
+
+```bash
+docker pull <imagem>       # Baixa uma imagem do Docker Hub (ex: docker pull nginx)
+docker images              # Lista as imagens baixadas
+docker rmi <imagem>        # Remove uma imagem
+```
+
+### Containers
+
+```bash
+docker run <imagem>                 # Cria e executa um container
+docker run -it <imagem> bash        # Executa com terminal interativo
+docker run -d -p 8080:80 <imagem>   # Executa em background, mapeando porta
+docker ps                           # Lista containers ativos
+docker ps -a                        # Lista todos containers (ativos e parados)
+docker stop <id ou nome>            # Para um container
+docker start <id ou nome>           # Inicia um container parado
+docker restart <id ou nome>         # Reinicia um container
+docker rm <id ou nome>              # Remove um container
+docker logs <id ou nome>            # Mostra os logs do container
+docker exec -it <id ou nome> bash   # Entra dentro do container
+```
+
+### Volumes e arquivos
+
+```bash
+docker volume ls                    # Lista volumes
+docker volume rm <nome>             # Remove um volume
+docker run -v /meu/diretorio:/app <imagem>   # Monta um volume local no container
+```
+
+### Redes
+
+```bash
+docker network ls                   # Lista redes
+docker network create <nome>        # Cria uma rede
+docker network rm <nome>            # Remove uma rede
+```
+
+### Limpeza
+
+```bash
+docker system prune -a              # Remove containers, imagens e redes não usados
+docker volume prune                 # Remove volumes não usados
+```
+
+# Containerização
+
+## O que é a **Containerização**?
+
+A **containerização** é uma tecnologia que permite empacotar uma aplicação junto com todas as suas dependências (bibliotecas, configurações, variáveis de ambiente etc.) dentro de um **contêiner**.
+
+Esse contêiner é leve, portátil e isolado, garantindo que a aplicação funcione sempre da mesma forma, não importa em qual ambiente esteja sendo executada (notebook do dev, servidor de testes ou nuvem em produção).
+
+## Por que **containerizar** uma aplicação?
+
+1. **Consistência entre ambientes**
+
+   * “Funciona na minha máquina” deixa de ser problema, já que o contêiner é idêntico em qualquer lugar.
+
+2. **Portabilidade**
+
+   * Pode rodar no Windows, Linux, Mac ou em qualquer provedor de nuvem sem ajustes.
+
+3. **Escalabilidade**
+
+   * É fácil replicar contêineres para lidar com maior demanda (ex: subir várias instâncias do mesmo app em segundos).
+
+4. **Isolamento**
+
+   * Cada contêiner tem seu próprio ambiente, sem conflito de dependências entre aplicações diferentes.
+
+5. **Eficiência**
+
+   * Mais leves que máquinas virtuais: consomem menos recursos, iniciam rápido e permitem alta densidade de aplicações no mesmo servidor.
+
+6. **Ciclo de entrega mais ágil**
+
+   * Integra bem com CI/CD, permitindo testes, deploys e rollbacks de forma rápida e previsível.
+
+# Imagem Docker
+
+## O que é uma Imagem Docker?
+
+Uma **imagem Docker** é um **modelo imutável** que define tudo o que um contêiner precisa para rodar: sistema operacional base, bibliotecas, dependências, variáveis de ambiente e o próprio código da aplicação. Ela funciona como uma **fotografia congelada** do ambiente, garantindo que o contêiner seja sempre executado da mesma forma, independente da máquina ou servidor.
+
+## Como as imagens são criadas?
+
+Existem duas formas principais de trabalhar com imagens Docker:
+
+1. **Imagens oficiais/prontas (padrões):**
+
+   * Disponíveis no [Docker Hub](https://hub.docker.com/), como `nginx`, `mysql`, `node`, `python` etc.
+   * São mantidas por comunidades ou pelas próprias empresas e já vêm configuradas para uso imediato.
+   * Exemplo: rodar `docker run nginx` já cria um contêiner com o Nginx pronto para uso.
+
+2. **Imagens personalizadas (via Dockerfile):**
+
+   * Criadas pelo desenvolvedor para atender às necessidades específicas da aplicação.
+   * O **Dockerfile** é um script com instruções que define como a imagem será construída.
+   * Exemplo: criar uma imagem baseada em `python:3.12`, copiar o código da aplicação, instalar dependências e expor a porta do serviço.
+
+## Relação entre imagens e contêineres
+
+* Imagem é o modelo estático, imutável.
+* Contêiner é a instância em execução dessa imagem.
+* A partir de uma mesma imagem, você pode subir vários contêineres idênticos.
+
+Isso permite misturar imagens **padrões** (como um banco de dados MySQL) com imagens **customizadas** (como o backend da sua aplicação), criando ambientes completos, reproduzíveis e portáveis.
+
+# Dockerfile
+
+## O que é o Dockerfile?
+O *Dockerfile* é um arquivo de configuração usado pelo Docker para automatizar a criação de imagens.  
+Ele contém instruções passo a passo que definem:
+- Qual sistema base utilizar (ex: Ubuntu, Alpine).
+- Quais dependências instalar.
+- Como copiar arquivos para dentro da imagem.
+- Como configurar variáveis de ambiente.
+- Qual comando deve ser executado quando o container iniciar.
+
+## Por que usar o Dockerfile?
+- *Automatização*: evita configurações manuais, tudo está documentado no arquivo.  
+- *Reprodutibilidade*: garante que qualquer pessoa consiga criar a mesma imagem com o mesmo resultado.  
+- *Padronização*: mantém consistência entre ambientes (desenvolvimento, testes e produção).  
+- *Escalabilidade*: facilita a criação de múltiplos containers iguais.  
+- *Portabilidade*: o mesmo Dockerfile pode ser usado em diferentes sistemas operacionais e servidores.  
+- *Documentação viva*: o próprio arquivo serve como registro das dependências e configurações necessárias para a aplicação.
+
+## Como usar Dockerfile
+
+### Comandos Mais Importantes
+- FROM: Define a imagem base. Exemplo: `FROM python:3.11-slim`
+- RUN: Executa comandos no processo de build. Exemplo: `RUN apt-get update && apt-get install -y curl`
+- COPY: Copia arquivos do host para dentro da imagem. Exemplo: `COPY requirements.txt /app/`
+- WORKDIR: Define o diretório de trabalho dentro do container. Exemplo: `WORKDIR /app`
+- CMD: Define o comando padrão ao rodar o container. Exemplo: `CMD ["python", "app.py"]`
+- EXPOSE: Documenta a porta que o container vai usar. Exemplo: `EXPOSE 5000`
+- ENV: Define variáveis de ambiente. Exemplo: `ENV APP_ENV=production`
+- ENTRYPOINT: Define o comando principal que não deve ser substituído facilmente. Exemplo: `ENTRYPOINT ["python", "app.py"]`
+
+### Outros Comandos Úteis
+- ADD: Similar ao `COPY`, mas aceita arquivos `.tar.gz` e URLs. Exemplo: `ADD app.tar.gz /app/`
+- ARG: Define variáveis de build (diferente de `ENV`). Exemplo: `ARG VERSION=1.0`
+- VOLUME: Cria ponto de montagem para volumes. Exemplo: `VOLUME /data`
+- USER: Define o usuário que executará os processos no container. Exemplo: `USER node`
+- LABEL: Adiciona metadados à imagem (ex: autor, versão). Exemplo: `LABEL maintainer="thiago@exemplo.com"`
+- HEALTHCHECK: Define um comando para verificar a saúde do container. Exemplo: `HEALTHCHECK CMD curl --fail http://localhost:5000 || exit 1`
+
+### Fluxo Típico de um Dockerfile
+
+```yaml
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+```
+
+# Docker Compose
+
+## O que é o **Docker Compose**
+
+O **Docker Compose** é uma ferramenta que permite **definir e executar aplicações Docker multi-contêiner** de forma fácil.
+Em vez de criar e gerenciar contêineres manualmente com vários comandos `docker run`, você cria um arquivo (`docker-compose.yml`) que descreve **todos os serviços, redes e volumes** necessários para sua aplicação.
+
+Exemplo de casos comuns:
+
+* Aplicação web + banco de dados
+* Backend + frontend + cache
+* Microserviços interdependentes
+
+## Por que usar o **Docker Compose**
+
+1. **Simplifica o gerenciamento**
+
+   * Com um único arquivo YAML, você define toda a infraestrutura da aplicação.
+
+2. **Reprodutibilidade**
+
+   * Toda a equipe pode rodar a aplicação com os mesmos serviços e configurações, evitando problemas de “funciona na minha máquina”.
+
+3. **Escalabilidade**
+
+   * Permite subir múltiplas instâncias de um serviço com apenas um comando.
+
+4. **Integração com CI/CD**
+
+   * Facilita testes automatizados e deploy em múltiplos ambientes.
+
+5. **Gerenciamento de dependências**
+
+   * Define a ordem de inicialização dos serviços (`depends_on`) e redes/volumes compartilhados.
+
+
+## Como usar o Docker Compose
+
+### 1. Estrutura do `docker-compose.yml`
+
+```yaml
+version: "3.9"
+
+services:
+  frontend:
+    image: nginx:latest
+    container_name: frontend
+    ports:
+      - "8080:80"                    
+    volumes:
+      - ./frontend/html:/usr/share/nginx/html   
+    networks:
+      - frontend_network
+    depends_on:
+      - backend                        
+
+  backend:
+    build:
+      context: ./backend              
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "5000:5000"
+    environment:                       
+      DATABASE_HOST: db
+      DATABASE_USER: root
+      DATABASE_PASSWORD: root123
+      CACHE_HOST: redis
+    volumes:
+      - backend_data:/app/data       
+    networks:
+      - frontend_network
+      - backend_network
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: mysql:8
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: appdb
+    volumes:
+      - db_data:/var/lib/mysql       
+    networks:
+      - backend_network
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data              
+    networks:
+      - backend_network
+
+volumes:
+  db_data:
+    driver: local
+  backend_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  frontend_network:
+    driver: bridge
+  backend_network:
+    driver: bridge
+```
+
+### 2. Explicando cada parte
+
+| Elemento                             | O que faz / Para que serve                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `version`                            | Define a versão do Docker Compose file, garantindo compatibilidade com recursos do Docker. |
+| `services`                           | Agrupa todos os serviços (contêineres) da aplicação.                                       |
+| `frontend`, `backend`, `db`, `redis` | Nome dos serviços, referência para redes, volumes e comandos.                              |
+| `image`                              | Define qual imagem Docker será usada para o serviço.                                       |
+| `build`                              | Define diretório e Dockerfile para criar imagem customizada.                               |
+| `container_name`                     | Nome do contêiner no Docker para facilitar identificação.                                  |
+| `ports`                              | Mapeia portas do host para portas do contêiner.                                            |
+| `volumes`                            | Monta volumes para persistência de dados ou bind mounts do host.                           |
+| `environment`                        | Define variáveis de ambiente dentro do contêiner.                                          |
+| `networks`                           | Define em quais redes o contêiner estará conectado.                                        |
+| `depends_on`                         | Define a ordem de inicialização entre serviços.                                            |
+| `volumes:`                           | Declara volumes nomeados usados pelos serviços.                                            |
+| `networks:`                          | Declara redes customizadas e seus drivers.                                                 |
+| `driver`                             | Define como o volume ou rede será gerenciado (ex.: `local`, `bridge`).                     |
+| `ipam`                               | Configura sub-rede e gateway da rede Docker.                                               |
+| `context`                            | Diretório onde está o Dockerfile para build de imagens customizadas.                       |
+| `dockerfile`                         | Nome do Dockerfile a ser usado para criar a imagem.                                        |
+
+* **frontend**: Serve arquivos HTML via Nginx. Conectado à rede `frontend_network` para falar com o backend.
+* **backend**: Serviço customizado com Dockerfile. Conectado a `frontend_network` e `backend_network` para acessar frontend e banco/cache. Variáveis de ambiente configuram conexões.
+* **db**: MySQL, conectado à `backend_network`. Volume `db_data` mantém os dados persistentes.
+* **redis**: Cache Redis, também na `backend_network`. Volume `redis_data` opcional para persistência.
+
+#### **Volumes**
+
+* **db\_data**: Persistência do MySQL
+* **backend\_data**: Persistência do backend
+* **redis\_data**: Persistência do Redis
+
+Podem ser nomeados ou bind mounts. Nomeados são gerenciados pelo Docker automaticamente.
+
+#### **Networks**
+
+* **frontend\_network** → Conecta frontend ao backend
+* **backend\_network** → Conecta backend ao db/redis, isolando do host e do frontend
+* **driver: bridge** é padrão e permite comunicação interna entre contêineres
+
+
+### 3. Comandos Docker Compose
+
+| Comando                                   | Descrição                                                     |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| `docker-compose up`                       | Cria e inicia contêineres. Use `-d` para rodar em background. |
+| `docker-compose down`                     | Para e remove contêineres, redes e volumes nomeados.          |
+| `docker-compose stop`                     | Para contêineres sem removê-los.                              |
+| `docker-compose start`                    | Inicia contêineres parados.                                   |
+| `docker-compose restart`                  | Reinicia contêineres.                                         |
+| `docker-compose build`                    | Constrói imagens a partir do Dockerfile do serviço.           |
+| `docker-compose up --build`               | Rebuild + up em um único comando.                             |
+| `docker-compose logs`                     | Mostra logs dos contêineres; `-f` segue em tempo real.        |
+| `docker-compose ps`                       | Lista contêineres gerenciados pelo Compose.                   |
+| `docker-compose exec <serviço> <comando>` | Executa comando dentro de contêiner em execução.              |
+| `docker-compose run <serviço> <comando>`  | Executa comando em um novo contêiner temporário.              |
+| `docker-compose pull`                     | Baixa imagens sem subir contêineres.                          |
+| `docker-compose push`                     | Envia imagens para um registry.                               |
+| `docker-compose up --scale <serviço>=<n>` | Sobe múltiplas instâncias do mesmo serviço.                   |
+
+### 4. Boas práticas
+
+1. **Use volumes para persistência** (banco, backend, logs)
+2. **Use redes para isolar serviços** e limitar exposição
+3. **Use depends\_on** para definir a ordem de inicialização
+4. **Separe arquivos de configuração por ambiente** (ex: `docker-compose.dev.yml`, `docker-compose.prod.yml`)
+5. **Use build para serviços customizados** e image para serviços padrão
+
+### 5. Resumo do fluxo
+
+* **Frontend** acessa backend via `frontend_network`.
+* **Backend** acessa MySQL e Redis via `backend_network`.
+* **Volumes** garantem persistência de dados.
+* **Redes** isolam serviços, aumentando segurança e organização.
+* Tudo pode ser iniciado com **um único comando**:
+
+```bash
+docker-compose up -d
+```
 
 # Grupo 4
 # Celery, Flower e Redis: Guia Completo
@@ -281,4 +658,3 @@ meu_projeto/
 # Grupo 6
 
 # Grupo 7
-
