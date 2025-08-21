@@ -997,3 +997,121 @@ Hospedar em **Heroku**, **Railway**, **Render**, **AWS**, **Azure** ou **GCP**.
 
 
 # Grupo 7
+
+# Guia do Backstage para o Projeto
+
+## Introdução
+O Backstage é uma plataforma open-source criada pela Spotify que tem como propósito centralizar a gestão e documentação de serviços, APIs e ferramentas dentro de uma organização.
+
+Neste projeto, o Backstage será o ponto único de acesso a informações técnicas sobre cada componente do sistema: desde microserviços em Python (FastAPI), integrações com PostgreSQL, até bibliotecas de Rust consumidas pelo backend.
+
+A utilização do Backstage garante que todo o ecossistema de software da equipe esteja devidamente documentado, acessível e versionado.
+
+## Objetivos
+- Adotar o Backstage como portal oficial de documentação e governança de serviços.  
+- Manter a visão unificada dos microserviços, APIs e bibliotecas.  
+- Facilitar o onboarding de novos desenvolvedores.  
+- Garantir que a documentação acompanhe o ciclo de vida dos serviços.  
+- Simplificar a colaboração entre times (backend, infraestrutura, DevOps).  
+
+## Arquitetura do Projeto
+O Backstage será utilizado como camada de visibilidade e documentação dos seguintes componentes:
+
+- **Microserviços (FastAPI/Python)**  
+  - APIs REST documentadas em OpenAPI.  
+  - Gerenciamento assíncrono de tarefas monitorado pelo Flower.  
+
+- **Banco de dados (PostgreSQL)**  
+  - Registrado como recurso no catálogo.  
+  - Metadata disponível no Backstage.  
+
+- **Biblioteca em Rust**  
+  - Exposta ao Python via bindings.  
+  - Registrada como componente de software reutilizável.  
+
+## Estrutura da Documentação
+Cada serviço ou componente deverá conter documentação em Markdown dentro do próprio repositório.
+
+Estrutura sugerida:
+
+```
+component/
+├── src/
+├── docs/
+│   ├── index.md         # Introdução ao serviço
+│   ├── architecture.md  # Arquitetura e diagramas
+│   ├── dependencies.md  # Dependências externas
+│   ├── api.md           # Rotas e contratos
+│   ├── deploy.md        # Guia de deploy
+│   └── team.md          # Contatos e responsáveis
+└── catalog-info.yaml    # Manifesto do componente no Backstage
+```
+
+O TechDocs renderizará essa documentação automaticamente dentro do Backstage.
+
+## Catálogo de Software
+O **Software Catalog** é o núcleo do Backstage.  
+Nele serão registrados todos os ativos tecnológicos do projeto:
+
+- **Services (Serviços):** APIs FastAPI, backend em Python, workers Celery.  
+- **Libraries (Bibliotecas):** componentes Rust compilados para Python.  
+- **Resources (Recursos):** banco PostgreSQL, filas (se utilizadas).  
+- **APIs:** contratos documentados em OpenAPI/Swagger.  
+
+Cada componente é descrito em um arquivo `catalog-info.yaml`.
+
+Exemplo (simplificado):
+
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: auth-service
+  description: Serviço de autenticação em FastAPI integrado com PostgreSQL
+  tags:
+    - python
+    - fastapi
+    - postgresql
+spec:
+  type: service
+  lifecycle: production
+  owner: team-backend
+  providesApis:
+    - auth-api
+  dependsOn:
+    - resource:postgresql-db
+```
+
+## Fluxo de Trabalho com o Backstage
+### Desenvolvimento
+- Novo serviço é criado no repositório.  
+- Documentação inicial em `docs/` é escrita.  
+- Arquivo `catalog-info.yaml` é incluído.  
+
+### Integração com o Backstage
+- Repositório é configurado como fonte no `app-config.yaml`.  
+- Serviço aparece automaticamente no Catalog.  
+
+### Atualizações
+- Mudanças no código refletem em novas versões de documentação.  
+- Equipes acompanham a evolução dos serviços centralmente.  
+
+## Boas Práticas
+- Documentar desde o início: cada novo serviço entra no Catalog junto com seu manifesto.  
+- Padronizar a documentação: seguir a estrutura proposta para consistência.  
+- Utilizar tags e owners: facilitar a busca e atribuir responsabilidades.  
+- Incluir diagramas de arquitetura (PlantUML, Mermaid, imagens estáticas).  
+- Automatizar integração CI/CD: garantir que novos serviços sejam registrados.  
+
+## Resultado Esperado
+- Portal centralizado de documentação e monitoramento.  
+- Redução de tempo no onboarding de novos membros.  
+- Melhoria na colaboração interequipes.  
+- Governança clara de dependências e recursos.  
+- Adoção do Backstage como fonte única de verdade sobre o sistema.  
+
+## Recursos Adicionais
+- Documentação oficial do Backstage  
+- Repositório no GitHub  
+- Integração com TechDocs  
+
