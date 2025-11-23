@@ -1,0 +1,11 @@
+# Arquivo de autenticação PgBouncer
+# Formato: "username" "password"
+
+# Usuário para a aplicação FastAPI
+"fastapi_user" "senha_segura_123"
+
+# Usuário administrativo
+"admin" "admin_senha_forte"
+
+# Usuário apenas para estatísticas
+"stats" "stats_senha"

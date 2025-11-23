@@ -1,0 +1,58 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: faculdade_db
+      POSTGRES_USER: fastapi_user
+      POSTGRES_PASSWORD: senha_segura_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastapi_user -d faculdade_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.16
+    ports:
+      - "6432:6432"
+    environment:
+      DATABASES: "faculdade_db=host=postgres port=5432 dbname=faculdade_db"
+      DB_USER: "fastapi_user"
+      DB_PASSWORD: "senha_segura_123"
+      AUTH_TYPE: "md5"
+      POOL_MODE: "transaction"
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "25"
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "psql", "-h", "localhost", "-p", "6432", "-U", "fastapi_user", "-d", "pgbouncer", "-c", "SHOW VERSION;"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://fastapi_user:senha_segura_123@pgbouncer:6432/faculdade_db"
+      PGBOUNCER_STATS_URL: "postgresql://stats:stats_senha@pgbouncer:6432/pgbouncer"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+
+volumes:
+  postgres_data:

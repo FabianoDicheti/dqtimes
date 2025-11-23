@@ -1,101 +1,88 @@
-import os
-import io
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 import asyncio
-import json
-import dask.dataframe as dd
-import tempfile
-from dask.distributed import Client, LocalCluster
-from app import forecast_temp
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
-import math
-import time
+from .config.database import (
+    AsyncSessionLocal, 
+    get_pgbouncer_stats, 
+    test_connections
+)
 
-# Iniciar um cluster local e um cliente Dask
-cluster = LocalCluster()
-client = Client(cluster)
-
-app = FastAPI()
-
+app = FastAPI(title="Projeto Faculdade - Connection Pooling")
 
 @app.on_event("startup")
 async def startup_event():
-    print(f"Dask Dashboard is available at {client.dashboard_link}")
+    """Executar na inicialização da aplicação"""
+    await test_connections()
+    print("🚀 Aplicação iniciada com Connection Pooling")
 
+# Dependência para obter sessão do banco
+async def get_db() -> AsyncSession:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
-@app.post("/projecao_lista/")
-async def upload_file(
-    lista_historico: str = Form(...),
-    quantidade_projecoes: int = Form(...),
-):
+@app.get("/")
+async def root():
+    return {"message": "Sistema com Connection Pooling - Projeto Faculdade"}
 
-    lista_original = json.loads(lista_historico)  # Convertendo para lista
+@app.get("/health/pgbouncer")
+async def health_pgbouncer():
+    """Health check completo do PgBouncer"""
+    try:
+        stats = await get_pgbouncer_stats()
+        
+        if "error" in stats:
+            raise HTTPException(status_code=500, detail=stats["error"])
+        
+        # Analisar métricas importantes
+        total_connections = sum([s['total_connections'] for s in stats['stats']])
+        active_pools = len([p for p in stats['pools'] if p['cl_active'] > 0])
+        
+        health_status = {
+            "status": "healthy",
+            "total_connections": total_connections,
+            "active_pools": active_pools,
+            "databases": len(stats['databases']),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        return health_status
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    n = quantidade_projecoes 
+@app.get("/stats/pgbouncer")
+async def detailed_pgbouncer_stats():
+    """Estatísticas detalhadas do PgBouncer"""
+    stats = await get_pgbouncer_stats()
+    return stats
 
-    # Chamando a função de previsão
-    resultado = forecast_temp(lista_original, n)
+@app.get("/test/database")
+async def test_database_connection(db: AsyncSession = Depends(get_db)):
+    """Teste de conexão com o banco através do PgBouncer"""
+    try:
+        result = await db.execute(text("SELECT version(), current_timestamp, pg_database_size('faculdade_db') as db_size"))
+        row = result.fetchone()
+        
+        return {
+            "postgres_version": row[0],
+            "current_timestamp": row[1],
+            "database_size_bytes": row[2],
+            "connection_test": "success"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
-    return {
-        "projecoes": resultado
-    }
-
-@app.post("/projecao_dataframe/")
-async def upload_file(
-    csv_dataframe: UploadFile = File(...),
-    quantidade_projecoes: int = Form(...),
-    header: bool = Form(...),
-    index_col: bool = Form(...),
-    page: int = Query(1, ge=1),  # Número da página, deve ser >= 1
-    page_size: int = Query(10, ge=1),  # Tamanho da página, deve ser >= 1
-):
-    n = quantidade_projecoes
-
-    # Salvar o conteúdo do arquivo em um arquivo temporário
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
-        tmp_file.write(await csv_dataframe.read())
-        tmp_file_path = tmp_file.name
-
-    ddf = dd.read_csv(tmp_file_path, header=0 if header else None)
-
-    if index_col:
-        ddf = ddf.drop(ddf.columns[0], axis=1)
-
-    # Calcular o número total de linhas e o número total de páginas
-    total_rows = len(ddf)
-    total_pages = math.ceil(total_rows / page_size)
-
-    # Verificar se o número da página é válido
-    if page > total_pages:
-        raise HTTPException(status_code=404, detail="Page number out of range")
-
-    # Calcular o índice inicial e final para a paginação
-    start_index = (page - 1) * page_size
-    end_index = start_index + page_size
-
-    # Aplicar a paginação ao DataFrame
-    ddf_paginated = ddf.loc[start_index:end_index]
-
-    start_time = time.time()
-    lista_df = []
-
-    for part in ddf_paginated.to_delayed():
-        # Converter a partição para um pandas DataFrame e iterar sobre as linhas
-        for index, row in part.compute().iterrows():
-            lista_df.append(row.tolist())
-
-    # Aplica a função de projeção à lista de listas
-    
-    resultado = []
-    for lista in lista_df:
-        projection = forecast_temp(lista, n)
-        resultado.append(projection)
-
-    end_time = time.time()
-    execution_time = end_time - start_time 
-
-    return {
-        "execution_time": execution_time,
-        "total_pages": total_pages,
-        "current_page": page,
-        "projecoes": resultado
-    }
+# Exemplo de uso em uma rota de negócio
+@app.get("/dados/contagem")
+async def get_data_count(db: AsyncSession = Depends(get_db)):
+    """Exemplo de rota que usa connection pooling"""
+    try:
+        result = await db.execute(text("SELECT COUNT(*) as total FROM information_schema.tables"))
+        count = result.scalar()
+        return {"total_tables": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -7,3 +7,6 @@ datetime
 uvicorn
 python-multipart
 bokeh
+asyncpg
+sqlalchemy[asyncio]
+psycopg2-binary
