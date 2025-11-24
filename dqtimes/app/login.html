@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login do Sistema</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 300px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 20px; color: #333; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box; /* Garante que o padding não aumente a largura */
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover { background-color: #0056b3; }
+        .mensagem {
+            margin-top: 15px;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none; /* Começa invisível */
+        }
+        .sucesso { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .erro { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Acesso Restrito</h2>
+        <form id="formLogin">
+            <input type="text" id="usuario" placeholder="Usuário (admin)" required>
+            <input type="password" id="senha" placeholder="Senha (123)" required>
+            <button type="submit">Entrar</button>
+        </form>
+        <div id="msgArea" class="mensagem"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('formLogin');
+        const msgArea = document.getElementById('msgArea');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Não deixa a página recarregar
+
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+
+            // Limpa mensagens anteriores
+            msgArea.style.display = 'none';
+            msgArea.className = 'mensagem';
+
+            try {
+                // Tenta conectar com o seu Python
+                const response = await fetch('http://127.0.0.1:8000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: usuario, password: senha })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // SUCESSO
+                    msgArea.innerText = "🎉 " + data.mensagem;
+                    msgArea.classList.add('sucesso');
+                    msgArea.style.display = 'block';
+
+                    // Salva o token (seu crachá)
+                    localStorage.setItem('token', data.token);
+
+                    console.log("Token salvo:", data.token);
+                    
+                    // Aqui você redirecionaria para a página principal
+                    // setTimeout(() => window.location.href = 'dashboard.html', 2000);
+                } else {
+                    // ERRO (Senha errada, etc)
+                    msgArea.innerText = "⚠️ " + (data.detail || "Erro desconhecido");
+                    msgArea.classList.add('erro');
+                    msgArea.style.display = 'block';
+                }
+            } catch (error) {
+                // ERRO DE CONEXÃO (Servidor desligado)
+                msgArea.innerText = "❌ Erro de conexão. O servidor está rodando?";
+                msgArea.classList.add('erro');
+                msgArea.style.display = 'block';
+                console.error(error);
+            }
+        });
+    </script>
+
+</body>
+</html>
