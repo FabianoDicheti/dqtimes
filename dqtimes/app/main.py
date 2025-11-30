@@ -6,15 +6,51 @@ import dask.dataframe as dd
 import tempfile
 from dask.distributed import Client, LocalCluster
 from app import forecast_temp
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query, Request
 import math
 import time
+import logging
+import time
+from app.logging_config import setup_logging, generate_request_id
+
 
 # Iniciar um cluster local e um cliente Dask
 cluster = LocalCluster()
 client = Client(cluster)
 
+# Inicializa loggers
+logger = setup_logging()
+
 app = FastAPI()
+
+# Middleware: request-id + access log
+@app.middleware("http")
+async def log_middleware(request: Request, call_next):
+    request_id = generate_request_id()
+    request.state.request_id = request_id
+
+    start_time = time.time()
+
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        # Log de erro
+        logger.error(
+            f"Erro interno | Rota={request.url.path} | Erro={str(e)}",
+            extra={"request_id": request_id}
+        )
+        raise
+
+    process_time = (time.time() - start_time) * 1000
+    
+    logger.info(
+        f"ACESSO | Rota={request.url.path} | Status={response.status_code} | "
+        f"Latência={process_time:.2f}ms",
+        extra={"request_id": request_id}
+    )
+
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.on_event("startup")
