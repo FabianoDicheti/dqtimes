@@ -1,0 +1,12 @@
+dask
+distributed
+numpy
+scipy
+fastapi
+datetime
+uvicorn
+python-multipart
+bokeh
+requests
+prometheus-client
+prometheus-fastapi-instrumentator
