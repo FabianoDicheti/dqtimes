@@ -82,4 +82,5 @@ print(response.status_code)
 print(response.json()['vetor_softmax'])
 print(response.json()['solo_descoberto'])
 print('\n')
+
 '''

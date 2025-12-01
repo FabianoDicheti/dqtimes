@@ -1,0 +1,740 @@
+{
+  "info": {
+    "_postman_id": "dqtimes-api-collection",
+    "name": "DQTimes API Collection",
+    "description": "Coleção completa de endpoints para a API DQTimes - Sistema de Projeção de Séries Temporais\n\n## Issues Implementadas:\n- #27_ref5_ref7_8_2h: Documentar endpoints FastAPI (parte 1: collection)\n- #27b_ref5_ref7_8_1h: Documentar endpoints FastAPI (parte 2: exemplos práticos)\n\n## Funcionalidades:\n- Autenticação JWT\n- Upload de dados (CSV/JSON)\n- Previsões de séries temporais\n- Histórico de operações\n- Health check",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Configuração global",
+          "if (!pm.collectionVariables.has('base_url')) {",
+          "    pm.collectionVariables.set('base_url', 'http://localhost:8000');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Teste global de status",
+          "if (pm.response.code >= 200 && pm.response.code < 300) {",
+          "    console.log('✓ Request successful');",
+          "} else {",
+          "    console.log('✗ Request failed with status: ' + pm.response.code);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticação",
+      "item": [
+        {
+          "name": "Login - Sucesso",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has access token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('access_token');",
+                  "    pm.collectionVariables.set('access_token', jsonData.access_token);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token_type', 'bearer');",
+                  "    pm.expect(jsonData).to.have.property('expires_in');",
+                  "    pm.expect(jsonData).to.have.property('user_id');",
+                  "    pm.expect(jsonData).to.have.property('username');",
+                  "    pm.expect(jsonData).to.have.property('roles');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login com credenciais válidas para obter token JWT"
+          }
+        },
+        {
+          "name": "Login - Credenciais Inválidas",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error message is present', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"invalid_user\",\n  \"password\": \"wrong_pass\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Teste de login com credenciais inválidas (deve retornar 401)"
+          }
+        },
+        {
+          "name": "Login - Validação de Parâmetros",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Validation errors are present', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ab\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Teste de validação de parâmetros (username muito curto, senha muito curta)"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "refresh_token",
+                  "value": "{{refresh_token}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Renovar token de acesso usando refresh token"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Realizar logout e invalidar token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Upload de Dados",
+      "item": [
+        {
+          "name": "Upload JSON - Sucesso",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has file_id', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('file_id');",
+                  "    pm.collectionVariables.set('file_id', jsonData.file_id);",
+                  "});",
+                  "",
+                  "pm.test('Processing status is correct', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status', 'processed');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "data",
+                  "value": "[100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]",
+                  "type": "text"
+                },
+                {
+                  "key": "metadata",
+                  "value": "{\"source\": \"vendas\", \"period\": \"mensal\", \"unit\": \"unidades\"}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/json",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "json"]
+            },
+            "description": "Upload de dados em formato JSON"
+          }
+        },
+        {
+          "name": "Upload JSON - Dados Inválidos",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 or 422', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+                  "});",
+                  "",
+                  "pm.test('Error message is present', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "data",
+                  "value": "invalid json data",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/json",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "json"]
+            },
+            "description": "Teste de upload com JSON inválido"
+          }
+        },
+        {
+          "name": "Upload CSV",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "data/sample.csv"
+                },
+                {
+                  "key": "description",
+                  "value": "Dados de vendas Q4 2024",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/csv",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "csv"]
+            },
+            "description": "Upload de arquivo CSV com séries temporais"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Previsões",
+      "item": [
+        {
+          "name": "Previsão Simples - Sucesso",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has projections', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('projections');",
+                  "    pm.expect(jsonData.projections).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response has confidence intervals', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('confidence_intervals');",
+                  "});",
+                  "",
+                  "pm.test('Probability is between 0 and 1', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.probability_increase).to.be.within(0, 1);",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": [100, 110, 105, 120, 125, 130, 128, 135, 140, 145, 142, 150],\n  \"n_projections\": 6,\n  \"method\": \"auto\",\n  \"confidence_level\": 0.95\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/forecast/single",
+              "host": ["{{base_url}}"],
+              "path": ["forecast", "single"]
+            },
+            "description": "Previsão para uma série temporal única"
+          }
+        },
+        {
+          "name": "Previsão Simples - Dados Insuficientes",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Error indicates minimum items', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.detail).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": [100, 110, 120],\n  \"n_projections\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/forecast/single",
+              "host": ["{{base_url}}"],
+              "path": ["forecast", "single"]
+            },
+            "description": "Teste com menos de 10 valores (deve falhar)"
+          }
+        },
+        {
+          "name": "Previsão em Lote",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "data/multiple_series.csv"
+                },
+                {
+                  "key": "n_projections",
+                  "value": "12",
+                  "type": "text"
+                },
+                {
+                  "key": "parallel_processing",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/forecast/batch",
+              "host": ["{{base_url}}"],
+              "path": ["forecast", "batch"]
+            },
+            "description": "Previsão para múltiplas séries temporais"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Histórico",
+      "item": [
+        {
+          "name": "Listar Histórico",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has pagination info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total_items');",
+                  "    pm.expect(jsonData).to.have.property('page');",
+                  "    pm.expect(jsonData).to.have.property('page_size');",
+                  "    pm.expect(jsonData).to.have.property('total_pages');",
+                  "});",
+                  "",
+                  "pm.test('Items is an array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.items).to.be.an('array');",
+                  "});",
+                  "",
+                  "// Salvar o primeiro ID se existir",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.items && jsonData.items.length > 0) {",
+                  "    pm.collectionVariables.set('operation_id', jsonData.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history?page=1&page_size=10",
+              "host": ["{{base_url}}"],
+              "path": ["history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Listar histórico de operações com paginação"
+          }
+        },
+        {
+          "name": "Histórico com Filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history?page=1&page_size=10&operation_type=forecast",
+              "host": ["{{base_url}}"],
+              "path": ["history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                },
+                {
+                  "key": "operation_type",
+                  "value": "forecast"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-11-01T00:00:00",
+                  "disabled": true
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-11-30T23:59:59",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Histórico com filtros de tipo e data"
+          }
+        },
+        {
+          "name": "Detalhes de Operação",
+          "event": {
+            "prerequest": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Usar o operation_id salvo ou um padrão",
+                  "if (!pm.collectionVariables.has('operation_id')) {",
+                  "    pm.collectionVariables.set('operation_id', 'op-example');",
+                  "}"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history/{{operation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["history", "{{operation_id}}"]
+            },
+            "description": "Buscar detalhes de uma operação específica"
+          }
+        },
+        {
+          "name": "Histórico - Paginação Inválida",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422 or 400', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+                  "});",
+                  "",
+                  "pm.test('Error message is present', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/history?page=0&page_size=200",
+              "host": ["{{base_url}}"],
+              "path": ["history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "page_size",
+                  "value": "200"
+                }
+              ]
+            },
+            "description": "Teste com parâmetros de paginação inválidos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Utilitários",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('API is healthy', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status', 'healthy');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verificar status de saúde da API"
+          }
+        },
+        {
+          "name": "API Root",
+          "event": {
+            "test": {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('API info is present', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('version');",
+                  "    pm.expect(jsonData).to.have.property('documentation');",
+                  "});"
+                ]
+              }
+            }
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Informações básicas da API"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "operation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "file_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
