@@ -1,0 +1,9 @@
+dask
+distributed
+numpy
+scipy
+fastapi
+datetime
+uvicorn
+python-multipart
+bokeh

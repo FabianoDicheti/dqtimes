@@ -1,0 +1,71 @@
+<<<<<<< HEAD
+# ----------------------
+# Python
+# ----------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.pyc
+
+# ----------------------
+# Virtual Environments
+# ----------------------
+venv/
+ENV/
+env/
+.venv/
+
+# ----------------------
+# Distribution / Packaging
+# ----------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ----------------------
+# IDEs e Editors
+# ----------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ----------------------
+# Logs e cache
+# ----------------------
+*.log
+*.sqlite3
+*.db
+*.cache
+*.tmp
+*.bak
+
+# ----------------------
+# Test e Coverage
+# ----------------------
+.coverage
+.tox/
+.pytest_cache/
+htmlcov/
+
+# ----------------------
+# Sistema
+# ----------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.DS_Store
+*.directory
+
+# ----------------------
+# FastAPI / Pydantic / SQLAlchemy
+# ----------------------
+*.env
+.env.*
+.env.local
+=======
+.env
+>>>>>>> dev

@@ -1,0 +1,62 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: dqtmes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: ./api
+    ports: ["8000:80"]
+    depends_on: [db, redis]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/dqtmes
+    volumes:
+      - ./api/app/libs:/app/app/libs
+
+  worker:
+    build: ./worker
+    depends_on: [redis, api]
+
+  flower:
+    image: mher/flower:latest
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports: ["5555:5555"]
+    depends_on: [redis]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  grafana_data:

@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'dqtimes-monitor'
+
+scrape_configs:
+  # FastAPI application metrics
+  - job_name: 'fastapi'
+    static_configs:
+      - targets: ['api:80']
+        labels:
+          service: 'dqtimes-api'
+          environment: 'production'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Flower (Celery monitoring) metrics
+  - job_name: 'flower'
+    static_configs:
+      - targets: ['flower:5555']
+        labels:
+          service: 'celery-flower'
+          environment: 'production'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'

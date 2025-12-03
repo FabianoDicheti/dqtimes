@@ -1,0 +1,86 @@
+# docker compose - rollout sem downtime
+#
+# rolling update para deploy sem interrupcao.
+# subistituindo gradualmente os containers que estao up sem derrubar o "servico"
+#
+# 1. dar build na nova imagem que quer utilizar: docker build -t dqtimes:v2 .
+# 2. edita o image(ln16) para o nome da nova imagem escolhida dqtimes:v2
+# 3. executa o depoly: docker-compose up -d atualiza gradualmente um container por vez)
+# 4. monitorar: docker-compose ps e /metrics para health (curl http://localhost:80/metrics)
+
+version: '3.8'
+
+services:
+  dqtimes:
+    image: dqtimes:latest
+    environment:
+      - FORCE_FALLBACK=false  # aqui muda para true se quiser forcar o fallback com pandas
+    deploy:
+      replicas: 2  # deixar no minimo com 2 para a atualizacao gradual dos containers
+      update_config:
+        parallelism: 1  # atualiza um container por vez, fazendo a validacao de health
+        delay: 10s      # tempo entre updates
+        order: start-first  # inicia o novo container e depois tira o antigo do ar
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s  # tempo de inicializacao do app
+
+
+# nginx usado para passar as portas para o container principal
+# entao quando acontecer a troca de imagem e container a porta muda de container novo
+# ou se cair um container o outro sobe na mesma porta
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - dqtimes
+services:
+  backend:
+    build: .
+    container_name: backend
+    env_file: .env
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  celery:
+    build: .
+    container_name: celery
+    command: celery -A app.celery.app worker --loglevel=info
+    env_file: .env
+    depends_on:
+      - redis
+
+  flower:
+    image: mher/flower:2.0.1
+    container_name: flower
+    env_file: .env
+    environment:
+      - CELERY_BROKER_URL=${REDIS_URL}
+      - FLOWER_PORT=${FLOWER_PORT}
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
+    ports:
+      - "${FLOWER_PORT}:${FLOWER_PORT}"
+    depends_on:
+      - redis
+      - celery
+
+volumes:
+  redis_data:

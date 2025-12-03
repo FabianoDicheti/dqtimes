@@ -1,0 +1,7 @@
+sqlalchemy
+pydantic
+fastapi
+uvicorn
+datetime
+httpx
+pytest
